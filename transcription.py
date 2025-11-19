@@ -9,6 +9,27 @@ from llm_client import client  # reuse OpenAI-compatible client
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
+def transcribe_audio_remote(audio_url: str) -> Dict[str, Any]:
+    """
+    Transcribe by sending the remote YouTube audio URL directly to Groq.
+    This avoids format/codec restrictions of local downloads.
+    """
+    model_name = "whisper-large-v3"  # Groq transcription model
+
+    resp = client.audio.transcriptions.create(
+        model=model_name,
+        file=audio_url,       # <-- Key change: URL instead of file object
+        response_format="json"
+    )
+
+    text = getattr(resp, "text", "") if resp else ""
+    return {
+        "text": text.strip(),
+        "segments": []
+    }
+
+
+
 def _make_limited_audio_copy(audio_path: str) -> str:
     """
     Ensure the audio file is not larger than MAX_UPLOAD_BYTES.
@@ -55,3 +76,4 @@ def transcribe_audio(audio_path: str) -> Dict[str, Any]:
         "text": (text or "").strip(),
         "segments": [],  # we don't need segments for classification
     }
+

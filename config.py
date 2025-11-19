@@ -12,7 +12,8 @@ import os
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini")  # or "llama-3.1-70b-instant" etc.
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini")  # default, can be overridden
+
 
 # ─────────────────────────────────────────────
 # YT-DLP / AUDIO CONFIG
@@ -29,3 +30,4 @@ os.makedirs(YTDLP_DOWNLOAD_DIR, exist_ok=True)
 # WHISPER CONFIG
 # ─────────────────────────────────────────────
 WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL_NAME", "tiny")  # "tiny", "base", "small", ...
+

@@ -1,24 +1,26 @@
+# yt_utils.py
 import os
 import tempfile
 from typing import Dict, Any
-
+import streamlit as st
 from yt_dlp import YoutubeDL
 from config import YTDLP_DOWNLOAD_DIR
-import streamlit as st
+
+
+# Groq allowed formats
+GROQ_ALLOWED_EXTS = (
+    ".flac", ".mp3", ".mp4", ".mpeg", ".mpga",
+    ".m4a", ".ogg", ".opus", ".wav", ".webm"
+)
 
 
 def download_audio_from_youtube(url: str) -> Dict[str, Any]:
     """
-    Download audio in a format accepted by Groq Whisper API.
-
-    Strategy:
-    - Let yt-dlp pick the best *audio-only* stream if possible (bestaudio)
-    - If not available, fall back to best single-file stream (best)
-    - We do NOT use any postprocessors → no ffmpeg needed.
-    - Finally, we validate that the file extension is one supported by Groq.
+    Download an audio file from YouTube in a format acceptable by Groq.
+    We use a strict fallback chain to ensure yt-dlp only picks valid formats.
     """
 
-    # Load cookies (optional but recommended for YouTube)
+    # Optional: load cookies
     cookies_txt = os.getenv("YOUTUBE_COOKIES") or getattr(st.secrets, "YOUTUBE_COOKIES", None)
 
     cookie_file_path = None
@@ -30,37 +32,49 @@ def download_audio_from_youtube(url: str) -> Dict[str, Any]:
 
     os.makedirs(YTDLP_DOWNLOAD_DIR, exist_ok=True)
 
-    # More flexible format selection:
-    # - "bestaudio": best audio-only stream (no merging needed)
-    # - "best": best single file (video+audio) if available
-    # Both should be downloadable without ffmpeg if they are single streams.
+    # FORMAT STRATEGY (safe for Streamlit Cloud, no ffmpeg required):
+    #
+    # 1. Try native audio formats in this order:
+    #    - m4a (AAC)
+    #    - webm (Opus)
+    #    - mp4 (AAC)
+    #
+    # 2. If not available, fallback to "bestaudio", but ONLY
+    #    allow it if extension is in Groq's allowed list.
+    #
+    format_chain = (
+        "bestaudio[ext=m4a]/"
+        "bestaudio[ext=webm]/"
+        "bestaudio[ext=mp4]/"
+        "bestaudio/best"
+    )
+
     ydl_opts = {
-        "format": "bestaudio/best",
-        "outtmpl": os.path.join(YTDLP_DOWNLOAD_DIR, "%(id)s.%(ext)s"),
-        "noplaylist": True,
+        "format": format_chain,
         "quiet": True,
+        "noplaylist": True,
         "nocheckcertificate": True,
+        "outtmpl": os.path.join(YTDLP_DOWNLOAD_DIR, "%(id)s.%(ext)s"),
         "overwrites": True,
     }
 
     if cookie_file_path:
         ydl_opts["cookiefile"] = cookie_file_path
 
+    # Download
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         audio_path = ydl.prepare_filename(info)
 
-    # Groq allowed extensions:
-    # flac mp3 mp4 mpeg mpga m4a ogg opus wav webm
-    allowed_exts = (".flac", ".mp3", ".mp4", ".mpeg", ".mpga",
-                    ".m4a", ".ogg", ".opus", ".wav", ".webm")
-
+    # Validate extension
     ext = os.path.splitext(audio_path)[-1].lower()
 
-    if ext not in allowed_exts:
+    if ext not in GROQ_ALLOWED_EXTS:
         raise ValueError(
-            f"Downloaded file format '{ext}' is not allowed by Groq. "
-            f"Try a different YouTube Short. (File: {audio_path})"
+            f"❌ Downloaded format '{ext}' is not allowed by Groq.\n"
+            f"File: {audio_path}\n\n"
+            f"This video does NOT provide audio in any Groq-supported format.\n"
+            f"Try another YouTube Short or use a proxy / cookies."
         )
 
     info["audio_path"] = audio_path

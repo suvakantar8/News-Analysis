@@ -11,7 +11,7 @@ import os
 #   export OPENAI_API_KEY="your_openrouter_api_key"
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.groq.com/openai/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4.1-mini")  # default, can be overridden
 
 
@@ -30,4 +30,5 @@ os.makedirs(YTDLP_DOWNLOAD_DIR, exist_ok=True)
 # WHISPER CONFIG
 # ─────────────────────────────────────────────
 WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL_NAME", "tiny")  # "tiny", "base", "small", ...
+
 

@@ -78,4 +78,7 @@ def download_audio_from_youtube(url: str) -> Dict[str, Any]:
         )
 
     info["audio_path"] = audio_path
+    info["url"] = info.get("url") or info.get("requested_formats", [{}])[0].get("url")
     return info
+
+

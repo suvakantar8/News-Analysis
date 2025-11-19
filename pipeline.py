@@ -25,6 +25,10 @@ class NewsItem:
 
 def process_short_url(url: str) -> NewsItem:
     info = download_audio_from_youtube(url)
+    audio_url = info.get("url") or info.get("requested_formats", [{}])[0].get("url")
+    if not audio_url:
+        raise ValueError("Failed to extract direct audio URL from YouTube")
+
 
     video_title = info.get("title", "")
     channel = info.get("uploader", None)
@@ -33,7 +37,7 @@ def process_short_url(url: str) -> NewsItem:
     audio_path = info["audio_path"]
 
     # Remote transcription now
-    transcription = transcribe_audio(audio_path)
+    transcription = transcribe_audio_remote(audio_url)
     transcript_text = transcription["text"]
 
     analysis = analyze_transcript(transcript_text)
@@ -58,3 +62,4 @@ def process_short_url(url: str) -> NewsItem:
         video_id=video_id,
         thumbnail=thumbnail,
     )
+

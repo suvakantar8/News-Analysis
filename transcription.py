@@ -1,26 +1,33 @@
+# transcription.py
 from typing import Dict, Any
-
-import whisper
-from config import WHISPER_MODEL_NAME   # <─ changed
-
-_model = None
-
-
-def _get_whisper_model():
-    global _model
-    if _model is None:
-        _model = whisper.load_model(WHISPER_MODEL_NAME)
-    return _model
+from llm_client import client  # reuse OpenAI-compatible client
 
 
 def transcribe_audio(audio_path: str) -> Dict[str, Any]:
     """
-    Transcribe audio with Whisper.
-    Returns: {"text": "...", "segments": [...]}
+    Transcribe audio using a hosted Whisper-like model via OpenAI-compatible API.
+
+    For Groq:
+      - OPENAI_BASE_URL="https://api.groq.com/openai/v1"
+      - model="whisper-large-v3"
+
+    For OpenAI:
+      - OPENAI_BASE_URL="https://api.openai.com/v1"
+      - model="gpt-4o-transcribe" or "whisper-1" (depending on your account)
     """
-    model = _get_whisper_model()
-    result = model.transcribe(audio_path)
+    # Choose a default model; override via env if you want
+    model_name = "whisper-large-v3"  # Groq's transcription model
+
+    with open(audio_path, "rb") as f:
+        resp = client.audio.transcriptions.create(
+            model=model_name,
+            file=f,
+            response_format="json",
+        )
+
+    # openai-python returns an object; access .text
+    text = getattr(resp, "text", "") if resp else ""
     return {
-        "text": result.get("text", "").strip(),
-        "segments": result.get("segments", []),
+        "text": (text or "").strip(),
+        "segments": [],  # we don't need segments for news classification
     }

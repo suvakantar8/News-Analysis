@@ -1,35 +1,34 @@
 import os
-from typing import Dict, Any
-
+import tempfile
 from yt_dlp import YoutubeDL
-from config import YTDLP_DOWNLOAD_DIR   # <─ changed
 
+def download_audio_from_youtube(url: str):
+    """
+    Download audio from YouTube Shorts using yt-dlp + cookies.
+    Required to bypass bot checks on Streamlit Cloud.
+    """
+    # Read cookies from Streamlit secrets (or env var)
+    cookies_txt = os.getenv("YOUTUBE_COOKIES")
 
-def download_audio_from_youtube(url: str) -> Dict[str, Any]:
-    """
-    Download audio from a YouTube URL using yt-dlp and return
-    metadata including the local audio file path.
-    Requires ffmpeg installed on the system.
-    """
+    cookie_file_path = None
+    if cookies_txt:
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".txt")
+        tmp.write(cookies_txt.encode("utf-8"))
+        tmp.close()
+        cookie_file_path = tmp.name
+
     ydl_opts = {
         "format": "bestaudio/best",
-        "outtmpl": os.path.join(YTDLP_DOWNLOAD_DIR, "%(id)s.%(ext)s"),
-        "noplaylist": True,
-        "postprocessors": [
-            {
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": "192",
-            }
-        ],
         "quiet": True,
+        "nocheckcertificate": True,
+        "outtmpl": "downloads/%(id)s.%(ext)s",
+        # Use cookies if available
+        "cookiefile": cookie_file_path,
     }
 
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         audio_path = ydl.prepare_filename(info)
-        base, _ = os.path.splitext(audio_path)
-        audio_path = base + ".mp3"
 
     info["audio_path"] = audio_path
     return info

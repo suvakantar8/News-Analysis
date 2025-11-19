@@ -1,16 +1,10 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from openai import OpenAI
-from config import OPENAI_API_KEY, OPENAI_BASE_URL, LLM_MODEL   # <─ changed
+from config import OPENAI_API_KEY, OPENAI_BASE_URL, LLM_MODEL
 
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY is not set. Please export it in your environment.")
-
-client = OpenAI(
-    api_key=OPENAI_API_KEY,
-    base_url=OPENAI_BASE_URL,
-)
+client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)
 
 SYSTEM_PROMPT = """
 You are an AI news extraction agent.
@@ -86,3 +80,4 @@ Return JSON only. Do not add explanations.
     data["tags"] = tags
 
     return data
+

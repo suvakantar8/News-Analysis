@@ -1,9 +1,10 @@
+# pipeline.py
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
-from yt_utils import download_audio_from_youtube        # <─ changed
-from transcription import transcribe_audio              # <─ changed
-from llm_client import analyze_transcript               # <─ changed
+from yt_utils import download_audio_from_youtube
+from transcription import transcribe_audio
+from llm_client import analyze_transcript
 
 
 @dataclass
@@ -23,9 +24,6 @@ class NewsItem:
 
 
 def process_short_url(url: str) -> NewsItem:
-    """
-    Complete pipeline for a single YouTube Short.
-    """
     info = download_audio_from_youtube(url)
 
     video_title = info.get("title", "")
@@ -34,6 +32,7 @@ def process_short_url(url: str) -> NewsItem:
     thumbnail = info.get("thumbnail", None)
     audio_path = info["audio_path"]
 
+    # Remote transcription now
     transcription = transcribe_audio(audio_path)
     transcript_text = transcription["text"]
 
@@ -45,7 +44,7 @@ def process_short_url(url: str) -> NewsItem:
     summary = analysis.get("summary")
     tags = analysis.get("tags") or []
 
-    item = NewsItem(
+    return NewsItem(
         video_url=url,
         video_title=video_title,
         channel=channel,
@@ -59,5 +58,3 @@ def process_short_url(url: str) -> NewsItem:
         video_id=video_id,
         thumbnail=thumbnail,
     )
-
-    return item

@@ -5,42 +5,20 @@ import tempfile
 
 from llm_client import client  # reuse OpenAI-compatible client
 
-# Keep audio upload under 20 MB to avoid 413 errors
+
+# Keep upload under 20 MB to avoid 413 errors
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
-
-
-def transcribe_audio_remote(audio_url: str) -> Dict[str, Any]:
-    """
-    Transcribe by sending the remote YouTube audio URL directly to Groq.
-    This avoids format/codec restrictions of local downloads.
-    """
-    model_name = "whisper-large-v3"  # Groq transcription model
-
-    resp = client.audio.transcriptions.create(
-        model=model_name,
-        file=audio_url,       # <-- Key change: URL instead of file object
-        response_format="json"
-    )
-
-    text = getattr(resp, "text", "") if resp else ""
-    return {
-        "text": text.strip(),
-        "segments": []
-    }
-
 
 
 def _make_limited_audio_copy(audio_path: str) -> str:
     """
     Ensure the audio file is not larger than MAX_UPLOAD_BYTES.
-    If it is, create a new temp file that contains only the first MAX_UPLOAD_BYTES bytes.
-    This avoids 413 'Request Entity Too Large' errors from the API.
+    If it is, create a truncated temp file containing only the first bytes.
     """
     size = os.path.getsize(audio_path)
     if size <= MAX_UPLOAD_BYTES:
-        return audio_path  # already small enough
+        return audio_path
 
-    # Create a truncated copy
     base, ext = os.path.splitext(audio_path)
     with open(audio_path, "rb") as src, tempfile.NamedTemporaryFile(
         delete=False, suffix=ext
@@ -53,27 +31,25 @@ def _make_limited_audio_copy(audio_path: str) -> str:
 
 def transcribe_audio(audio_path: str) -> Dict[str, Any]:
     """
-    Transcribe audio using a hosted Whisper-like model via an OpenAI-compatible API.
+    Transcribe audio using Groq's Whisper-like model via OpenAI-compatible API.
 
-    For Groq:
-      - OPENAI_BASE_URL="https://api.groq.com/openai/v1"
-      - model="whisper-large-v3"
+    Requires:
+      OPENAI_BASE_URL = "https://api.groq.com/openai/v1"
+      OPENAI_API_KEY  = "gsk_..."
     """
-    model_name = "whisper-large-v3"  # Groq's transcription model
+    model_name = "whisper-large-v3"  # Groq transcription model
 
-    # Ensure file size is within safe limits for the API
-    safe_audio_path = _make_limited_audio_copy(audio_path)
+    safe_path = _make_limited_audio_copy(audio_path)
 
-    with open(safe_audio_path, "rb") as f:
+    with open(safe_path, "rb") as f:
         resp = client.audio.transcriptions.create(
             model=model_name,
-            file=f,
+            file=f,               # ✅ real file object, NOT a URL string
             response_format="json",
         )
 
     text = getattr(resp, "text", "") if resp else ""
     return {
         "text": (text or "").strip(),
-        "segments": [],  # we don't need segments for classification
+        "segments": [],  # not needed for classification
     }
-

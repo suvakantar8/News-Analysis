@@ -3,7 +3,8 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
 from yt_utils import download_audio_from_youtube
-from transcription import transcribe_audio
+from transcription import transcribe_audio_remote
+
 from llm_client import analyze_transcript
 
 
@@ -62,4 +63,5 @@ def process_short_url(url: str) -> NewsItem:
         video_id=video_id,
         thumbnail=thumbnail,
     )
+
 
